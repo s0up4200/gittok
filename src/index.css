@@ -323,6 +323,19 @@ a {
   backdrop-filter: blur(8px);
 }
 
+.debug {
+  position: absolute;
+  top: 30%;
+  left: 8px;
+  margin: 0;
+  padding: 8px;
+  max-width: 70vw;
+  white-space: pre-wrap;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 3;
+}
+
 .toast {
   position: absolute;
   bottom: calc(max(24px, env(safe-area-inset-bottom, 0px)) + 8px);

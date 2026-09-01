@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { compareKey, type Card, type RepoStats } from './feed.ts'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { CardView, EndCard, SkeletonCard } from './Card.tsx'
+import { Debug } from './Debug.tsx'
 
 export type EndState =
   | { kind: 'loading' }
@@ -153,6 +154,7 @@ export function Feed(p: Props) {
         </button>
       )}
       {p.offline && <div className="pill offline-chip">offline</div>}
+      {location.search.includes('debug') && <Debug />}
       {p.toast && <div className="toast">{p.toast}</div>}
       {p.hint && (
         <div className="hint">
