@@ -142,8 +142,8 @@ Manifest (vite-plugin-pwa `manifest` option):
 
 CSS:
 
-- [ ] `html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }`
-- [ ] `body { position: fixed; inset: 0; width: 100%; }` (belt and braces for bug 222654)
+- [ ] `html { overflow: hidden; overscroll-behavior: none; }` and a plain `body { margin: 0 }`
+- [ ] Do NOT fix or clip `body`. Verified on iOS 27 (2026-09-01): a `position: fixed; inset: 0` body is 62 px shorter than the view (`innerHeight` 894 versus `100vh` 956 on an iPhone 16 Pro Max, bug 210009), so it clips the card bottom or leaves a black strip. Clip on `html` only, size the feed with `100vh` in standalone.
 - [ ] `.feed { height: 100dvh; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: none; -webkit-overflow-scrolling: touch; }`
 - [ ] `@media (display-mode: standalone) { .feed { height: 100vh; } }` (bug 254868)
 - [ ] `.feed > .item { height: 100%; scroll-snap-align: start; scroll-snap-stop: always; }`
