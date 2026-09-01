@@ -4,10 +4,10 @@
 }
 
 :root {
-  /* iOS 27 reports a top inset even when the web view starts below the status bar (WebKit bug 317153).
-     100vh - 100dvh is the part of the screen outside the view, so subtract it. Zero in a browser tab. */
-  --inset-top: max(0px, calc(env(safe-area-inset-top, 0px) - (100vh - 100dvh)));
-  --inset-bottom: env(safe-area-inset-bottom, 0px);
+  /* On iOS 27 the installed app's web view can end above the screen bottom (WebKit bug 317153):
+     100vh - 100dvh is the strip outside the view, so the bottom inset shrinks by that much. Zero in a browser tab. */
+  --inset-top: env(safe-area-inset-top, 0px);
+  --inset-bottom: max(0px, calc(env(safe-area-inset-bottom, 0px) - (100vh - 100dvh)));
 }
 
 html,
@@ -89,7 +89,19 @@ a {
   overflow-wrap: anywhere;
 }
 
-/* Colour wash: the actor's avatar, blurred. */
+/* Colour wash: the actor's avatar, blurred. The card fades to black at the bottom so text stays readable
+   and the strip iOS paints below the web view blends in. */
+.card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.75));
+  pointer-events: none;
+}
+
 .wash {
   position: absolute;
   inset: -20%;
