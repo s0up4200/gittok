@@ -1,6 +1,7 @@
 import { ArrowTopRightOnSquareIcon, Cog6ToothIcon, StarIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid'
-import { actorLine, ago, type Card, type RepoStats } from './feed.ts'
+import { useState } from 'react'
+import { actorLine, ago, FOLD_LINES, type Card, type RepoStats } from './feed.ts'
 import type { EndState } from './Feed.tsx'
 
 export const Gear = () => (
@@ -29,6 +30,7 @@ export function CardView({ card, stats, commits, starred, onStar, now }: Props) 
   const avatar = card.actors[0]!.avatar
   const title = card.title || (card.shape === 'repo' ? (stats?.description ?? '') : '')
   const body = card.push ? (commits ?? []) : card.body
+  const [open, setOpen] = useState(false)
   const meta = card.push && commits ? `${commits.length} commit${commits.length === 1 ? '' : 's'}` : card.meta === title ? '' : card.meta
   return (
     <section className="card" data-id={card.id}>
@@ -71,11 +73,16 @@ export function CardView({ card, stats, commits, starred, onStar, now }: Props) 
         </div>
         {title && <div className="title">{title}</div>}
         {body.length > 0 && (
-          <ul className="list">
-            {body.map((l, i) => (
+          <ul className={open ? 'list open' : 'list'}>
+            {(open ? body : body.slice(0, FOLD_LINES)).map((l, i) => (
               <li key={i}>{l}</li>
             ))}
           </ul>
+        )}
+        {body.length > FOLD_LINES && (
+          <button className="more dim" onClick={() => setOpen(!open)}>
+            {open ? 'less' : 'more'}
+          </button>
         )}
         {meta && <div className="dim meta">{meta}</div>}
       </div>

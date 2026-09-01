@@ -91,7 +91,8 @@ const WINDOW_MS = 30 * 86_400_000
 const PUSH_WINDOW_MS = 6 * 3_600_000
 const REPO_WINDOW_MS = 24 * 3_600_000
 const SEEN_CAP = 1000
-const BODY_LINES = 8
+// Lines a card shows before the reader taps "more".
+export const FOLD_LINES = 8
 
 export function releaseCardId(releaseId: number) {
   return `release-${releaseId}`
@@ -105,8 +106,8 @@ function shortRef(ref: string | null | undefined) {
   return (ref ?? '').replace(/^refs\/(heads|tags)\//, '')
 }
 
-// Turns Markdown text into a few plain lines.
-export function bodyLines(text: string | null | undefined, max = BODY_LINES): string[] {
+// Turns Markdown text into plain lines.
+export function bodyLines(text: string | null | undefined, max?: number): string[] {
   if (!text) return []
   return text
     .split(/\r?\n/)

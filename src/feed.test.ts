@@ -20,10 +20,10 @@ function ev(type: string, hoursAgo: number, payload: Event['payload'] = {}, opts
 const push = (hoursAgo: number, n: number, o: { repo?: string; actor?: string; ref?: string } = {}) =>
   ev('PushEvent', hoursAgo, { ref: o.ref ?? 'refs/heads/main', head: `head${n}`, before: `before${n}` }, o)
 
-const release = (hoursAgo: number, id: number) =>
+const release = (hoursAgo: number, id: number, body = '## Notes\n- one\n- two') =>
   ev('ReleaseEvent', hoursAgo, {
     action: 'published',
-    release: { id, tag_name: 'v1.0.0', name: 'v1.0.0', body: '## Notes\n- one\n- two', html_url: 'https://github.com/octo/repo/releases/tag/v1.0.0', prerelease: false },
+    release: { id, tag_name: 'v1.0.0', name: 'v1.0.0', body, html_url: 'https://github.com/octo/repo/releases/tag/v1.0.0', prerelease: false },
   })
 
 function starred(hoursAgo: number, id: number, name = 'octo/repo'): StarredRepo {
@@ -170,5 +170,13 @@ describe('seen', () => {
     expect(seen).toHaveLength(1000)
     expect(seen.some(([id]) => id === 'c0')).toBe(false)
     expect(seen.some(([id]) => id === 'c1004')).toBe(true)
+  })
+})
+
+describe('release body', () => {
+  test('keeps every line so the card can unfold a long changelog', () => {
+    const notes = Array.from({ length: 30 }, (_, i) => `- change ${i}`).join('\n')
+    const [card] = buildFeed([release(1, 7, notes)], [], new Set(), NOW, new Set(KINDS.map((k) => k.kind)))
+    expect(card!.body).toHaveLength(30)
   })
 })

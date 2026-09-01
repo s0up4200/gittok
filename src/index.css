@@ -204,6 +204,18 @@ a {
   margin: 4px 0;
 }
 
+/* Open: the list scrolls inside the card. Contain keeps a scroll at its end from moving the feed. */
+.list.open {
+  max-height: 55dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.more {
+  text-decoration: underline;
+}
+
 .meta {
   font-size: 15px;
 }

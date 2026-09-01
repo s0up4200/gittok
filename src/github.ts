@@ -27,6 +27,7 @@ const EVENT_PAGES = 3
 export const STARRED_CAP = 1000
 export const RATE_FLOOR = 100
 const BODY_CAP = 1000
+const RELEASE_CAP = 4000
 
 const STARRED_QUERY = `query($after: String) {
   viewer {
@@ -90,7 +91,7 @@ export function trimEvent(e: any): Event {
   if (p.issue) payload.issue = { number: p.issue.number, title: p.issue.title, body: cap(p.issue.body), html_url: p.issue.html_url }
   if (p.release) {
     const r = p.release
-    payload.release = { id: r.id, tag_name: r.tag_name, name: r.name, body: cap(r.body), html_url: r.html_url, prerelease: Boolean(r.prerelease) }
+    payload.release = { id: r.id, tag_name: r.tag_name, name: r.name, body: cap(r.body, RELEASE_CAP), html_url: r.html_url, prerelease: Boolean(r.prerelease) }
   }
   if (p.forkee) payload.forkee = { full_name: p.forkee.full_name, html_url: p.forkee.html_url }
   return {
@@ -127,7 +128,7 @@ function toStarred(r: GqlRepo): StarredRepo {
       name: rel.name,
       publishedAt: rel.publishedAt,
       url: rel.url,
-      description: cap(rel.description),
+      description: cap(rel.description, RELEASE_CAP),
       isPrerelease: rel.isPrerelease,
     },
   }
