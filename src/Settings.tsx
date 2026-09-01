@@ -46,14 +46,17 @@ export function Settings(p: Props) {
   return (
     <main className="settings">
       <header>
-        <a href="#" className="back" aria-label="Back to feed">
-          <ChevronLeftIcon className="icon" /> Feed
-        </a>
+        {p.token && (
+          <a href="#" className="back" aria-label="Back to feed">
+            <ChevronLeftIcon className="icon" /> Feed
+          </a>
+        )}
         <h1>Settings</h1>
       </header>
 
       <section>
         <label htmlFor="token">GitHub token</label>
+        {!p.token && <p>Paste a token to see your feed. The Home Screen app starts with empty storage, so a fresh install asks again.</p>}
         <p className="dim">
           A classic personal access token with the <code>public_repo</code> scope. A fine-grained token with "Starring: read and write" and public
           repository access also reads the feed, but starring from a card is unverified.
@@ -91,6 +94,7 @@ export function Settings(p: Props) {
         ))}
       </section>
 
+      {p.token && (
       <section>
         <button
           className="big-btn secondary"
@@ -114,6 +118,7 @@ export function Settings(p: Props) {
         </button>
         {note && <p className="dim">{note}</p>}
       </section>
+      )}
 
       <footer className="dim">
         GitTok v{version} ·{' '}
