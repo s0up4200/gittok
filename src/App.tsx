@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { buildFeed, compareKey, markSeen, seenIds, type Card, type Kind, type RepoStats, type Seen } from './feed.ts'
-import { ApiError, createClient, type Cause, type Client, type StatsMap } from './github.ts'
+import { buildFeed, compareKey, KINDS, markSeen, seenIds, type Card, type Kind, type RepoStats, type Seen } from './feed.ts'
+import { ApiError, createClient, type Cause, type Client } from './github.ts'
 import { EMPTY_FEED, store, type FeedData } from './store.ts'
 import { Feed, type EndState } from './Feed.tsx'
 import { Settings } from './Settings.tsx'
@@ -30,8 +30,6 @@ export default function App() {
   const [debug, setDebug] = useState(store.debug)
 
   const dataRef = useRef(data)
-  const seenRef = useRef(seen)
-  const kindsRef = useRef(kinds)
   const clientRef = useRef<Client | null>(null)
   const lastFetch = useRef(0)
   const inflight = useRef(false)
@@ -42,11 +40,9 @@ export default function App() {
     store.setFeed(data)
   }, [data])
   useEffect(() => {
-    seenRef.current = seen
     store.setSeen(seen)
   }, [seen])
   useEffect(() => {
-    kindsRef.current = kinds
     store.setKinds(kinds)
   }, [kinds])
   useEffect(() => {
@@ -75,32 +71,33 @@ export default function App() {
     try {
       const ev = await c.events(dataRef.current.events, (_, cache) => setData((d) => ({ ...d, events: cache })))
       const now = Date.now()
-      const cards = buildFeed(ev.events, [], seenIds(seenRef.current), now, new Set(kindsRef.current))
+      // Every card the cache can show, seen or not, all kinds. The Feed keeps seen cards on screen and kinds can
+      // switch on later, so stats and compares live as long as the events behind them.
+      const cards = buildFeed(ev.events, [], new Set(), now, new Set(KINDS.map((k) => k.kind)))
+      const inFeed = new Set(cards.map((x) => x.repo))
       // Repos in the cached starred list carry their own stats and star state.
       const cachedStarred = new Set(dataRef.current.starred.map((r) => r.name))
-      const repos = [...new Set(cards.map((x) => x.repo))].filter((r) => !cachedStarred.has(r))
-      // Stats and star state for the cards on screen land first. Starred pages can take seconds on a big list.
-      const [fresh, st] = await Promise.all([
-        repos.length && !c.lowOnRateLimit() ? c.stats(repos).then((s) => (setData((d) => ({ ...d, stats: { ...d.stats, ...s } })), s)) : ({} as StatsMap),
-        c.starred((list) => setData((d) => ({ ...d, starred: list }))),
+      const repos = [...inFeed].filter((r) => !cachedStarred.has(r))
+      // Stats land first. Starred pages can take seconds on a big list, so each page merges into the old list
+      // instead of replacing it; a replace would drop stats and star state for repos on later pages.
+      const [, st] = await Promise.all([
+        repos.length && !c.lowOnRateLimit() ? c.stats(repos).then((s) => setData((d) => ({ ...d, stats: { ...d.stats, ...s } }))) : undefined,
+        c.starred((list) =>
+          setData((d) => {
+            const got = new Set(list.map((r) => r.name))
+            return { ...d, starred: [...list, ...d.starred.filter((r) => !got.has(r.name))] }
+          }),
+        ),
       ])
       const compareKeys = new Set(cards.filter((x) => x.push).map(compareKey))
-      setData((d) => {
-        // Keep stats and compare results only for repos and pushes still in the feed.
-        const stats: StatsMap = {}
-        for (const r of repos) {
-          const s = fresh[r] ?? d.stats[r]
-          if (s) stats[r] = s
-        }
-        return {
-          events: ev.cache,
-          starred: st.repos,
-          stats,
-          compares: Object.fromEntries(Object.entries(d.compares).filter(([k]) => compareKeys.has(k))),
-          checkedAt: now,
-          capped: st.capped,
-        }
-      })
+      setData((d) => ({
+        events: ev.cache,
+        starred: st.repos,
+        stats: Object.fromEntries(Object.entries(d.stats).filter(([r]) => inFeed.has(r))),
+        compares: Object.fromEntries(Object.entries(d.compares).filter(([k]) => compareKeys.has(k))),
+        checkedAt: now,
+        capped: st.capped,
+      }))
       setStarOverrides({})
       setOffline(false)
       setStatus({ kind: 'ok' })
