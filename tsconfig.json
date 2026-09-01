@@ -4,7 +4,7 @@
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["vite/client", "bun"],
+    "types": ["vite/client", "vite-plugin-pwa/client", "bun"],
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
