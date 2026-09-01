@@ -121,10 +121,13 @@ export default function App() {
       refresh()
     }
     const onOffline = () => setOffline(true)
+    // An app that stays in the foreground never fires visibilitychange. refresh() holds its own poll cooldown.
+    const tick = setInterval(onVisible, 60_000)
     document.addEventListener('visibilitychange', onVisible)
     addEventListener('online', onOnline)
     addEventListener('offline', onOffline)
     return () => {
+      clearInterval(tick)
       document.removeEventListener('visibilitychange', onVisible)
       removeEventListener('online', onOnline)
       removeEventListener('offline', onOffline)

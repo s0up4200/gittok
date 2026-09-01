@@ -148,8 +148,10 @@ export function createClient(token: string, fetchImpl: Fetch = (u, i) => fetch(u
   async function call(path: string, init: RequestInit & { headers?: Record<string, string> } = {}) {
     let res: Response
     try {
+      // iOS can suspend the app mid-request and never settle the promise. A hung call would hold the refresh lock.
       res = await fetchImpl(API + path, {
         ...init,
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/vnd.github+json',
