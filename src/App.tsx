@@ -1,15 +1,232 @@
-const cards = ['Repo card', 'Change card', 'Release card']
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { buildFeed, compareKey, markSeen, seenIds, type Card, type RepoStats, type Seen } from './feed.ts'
+import { ApiError, createClient, type Cause, type Client, type StatsMap } from './github.ts'
+import { EMPTY_FEED, store, type FeedData } from './store.ts'
+import { Feed, type EndState } from './Feed.tsx'
+import { Settings } from './Settings.tsx'
+
+type Status = { kind: 'loading' | 'ok' } | { kind: 'error'; cause: Cause; status: number; resetAt?: number }
+
+const isIosSafariTab = 'standalone' in navigator && (navigator as { standalone?: boolean }).standalone === false
+
+function allEvents(data: FeedData) {
+  return Object.keys(data.events)
+    .sort()
+    .flatMap((k) => data.events[k]!.events)
+}
 
 export default function App() {
+  const [hash, setHash] = useState(location.hash)
+  const [token, setToken] = useState(store.token)
+  const [user, setUser] = useState(store.user)
+  const [data, setData] = useState<FeedData>(store.feed)
+  const [seen, setSeen] = useState<Seen>(store.seen)
+  const [status, setStatus] = useState<Status>({ kind: 'loading' })
+  const [offline, setOffline] = useState(!navigator.onLine)
+  const [starOverrides, setStarOverrides] = useState<Record<string, boolean>>({})
+  const [toast, setToast] = useState('')
+  const [hint, setHint] = useState(isIosSafariTab && !store.hintDismissed())
+
+  const dataRef = useRef(data)
+  const seenRef = useRef(seen)
+  const clientRef = useRef<Client | null>(null)
+  const lastFetch = useRef(0)
+  const inflight = useRef(false)
+  const comparesInFlight = useRef(new Set<string>())
+
+  useEffect(() => {
+    dataRef.current = data
+    store.setFeed(data)
+  }, [data])
+  useEffect(() => {
+    seenRef.current = seen
+    store.setSeen(seen)
+  }, [seen])
+  useEffect(() => {
+    const h = () => setHash(location.hash)
+    addEventListener('hashchange', h)
+    return () => removeEventListener('hashchange', h)
+  }, [])
+  useEffect(() => {
+    if (!token && hash !== '#settings') location.replace('#settings')
+  }, [token, hash])
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 2500)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  const client = () => (clientRef.current ??= createClient(store.token()))
+
+  const refresh = useCallback(async (force = false) => {
+    if (!store.token() || inflight.current) return
+    const c = client()
+    if (!force && Date.now() - lastFetch.current < c.pollMs) return
+    inflight.current = true
+    lastFetch.current = Date.now()
+    setStatus({ kind: 'loading' })
+    try {
+      const [ev, st] = await Promise.all([
+        c.events(dataRef.current.events, (_, cache) => setData((d) => ({ ...d, events: cache }))),
+        c.starred((repos) => setData((d) => ({ ...d, starred: repos }))),
+      ])
+      const now = Date.now()
+      const starredNames = new Set(st.repos.map((r) => r.name))
+      const cards = buildFeed(ev.events, [], seenIds(seenRef.current), now)
+      const repos = [...new Set(cards.map((x) => x.repo))].filter((r) => !starredNames.has(r))
+      const fresh = repos.length && !c.lowOnRateLimit() ? await c.stats(repos) : {}
+      const compareKeys = new Set(cards.filter((x) => x.push).map(compareKey))
+      setData((d) => {
+        // Keep stats and compare results only for repos and pushes still in the feed.
+        const stats: StatsMap = {}
+        for (const r of repos) {
+          const s = fresh[r] ?? d.stats[r]
+          if (s) stats[r] = s
+        }
+        return {
+          events: ev.cache,
+          starred: st.repos,
+          stats,
+          compares: Object.fromEntries(Object.entries(d.compares).filter(([k]) => compareKeys.has(k))),
+          checkedAt: now,
+          capped: st.capped,
+        }
+      })
+      setStarOverrides({})
+      setOffline(false)
+      setStatus({ kind: 'ok' })
+    } catch (e) {
+      const err = e instanceof ApiError ? e : new ApiError('http', 0)
+      if (err.cause === 'offline') setOffline(true)
+      if (err.cause === 'token-rejected') setData(EMPTY_FEED)
+      setStatus({ kind: 'error', cause: err.cause, status: err.status, resetAt: err.resetAt })
+    } finally {
+      inflight.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    refresh()
+    const onVisible = () => document.visibilityState === 'visible' && refresh()
+    const onOnline = () => {
+      setOffline(false)
+      refresh()
+    }
+    const onOffline = () => setOffline(true)
+    document.addEventListener('visibilitychange', onVisible)
+    addEventListener('online', onOnline)
+    addEventListener('offline', onOffline)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      removeEventListener('online', onOnline)
+      removeEventListener('offline', onOffline)
+    }
+  }, [refresh])
+
+  // Rebuilds on every seen mark too. Feed only ever adds cards from a rebuild, so nothing moves under the thumb.
+  // The clock is the last fetch time, so the memo stays pure. Before the first fetch there is nothing to window.
+  const cards = useMemo(() => (token ? buildFeed(allEvents(data), data.starred, seenIds(seen), data.checkedAt ?? 0) : []), [token, data, seen])
+
+  const starredMap = useMemo(() => new Map(data.starred.map((r) => [r.name, r])), [data.starred])
+  const statsFor = (repo: string): RepoStats | undefined => data.stats[repo] ?? starredMap.get(repo)
+  const isStarred = (repo: string) => starOverrides[repo] ?? (starredMap.has(repo) || data.stats[repo]?.viewerHasStarred === true)
+
+  const toggleStar = (repo: string) => {
+    const on = !isStarred(repo)
+    setStarOverrides((o) => ({ ...o, [repo]: on }))
+    client()
+      .setStar(repo, on)
+      .catch(() => {
+        setStarOverrides((o) => ({ ...o, [repo]: !on }))
+        setToast(on ? 'Star failed' : 'Unstar failed')
+      })
+  }
+
+  const onSeen = useCallback((card: Card) => {
+    setSeen((s) => markSeen(s, card.id, Date.parse(card.at), Date.now()))
+  }, [])
+
+  const onNearPush = useCallback((card: Card) => {
+    const key = compareKey(card)
+    if (dataRef.current.compares[key] || comparesInFlight.current.has(key)) return
+    const c = clientRef.current
+    if (!c || c.lowOnRateLimit()) return
+    comparesInFlight.current.add(key)
+    c.compare(card.repo, card.push!.before, card.push!.head)
+      .then((lines) => setData((d) => ({ ...d, compares: { ...d.compares, [key]: lines } })))
+      .catch(() => {})
+      .finally(() => comparesInFlight.current.delete(key))
+  }, [])
+
+  const hasCache = cards.length > 0 || data.checkedAt !== null
+  const end: EndState = !token
+    ? { kind: 'no-token' }
+    : status.kind === 'error' && !(status.cause === 'offline' && hasCache)
+      ? status.cause === 'http'
+        ? { kind: 'error', status: status.status }
+        : { kind: status.cause, resetAt: status.resetAt }
+      : status.kind === 'loading' && !hasCache
+        ? { kind: 'loading' }
+        : { kind: 'caught-up', checkedAt: data.checkedAt }
+
+  if (hash === '#settings') {
+    return (
+      <Settings
+        token={token}
+        user={user}
+        capped={data.capped}
+        error={status.kind === 'error' && (status.cause === 'token-rejected' || status.cause === 'needs-scope') ? status.cause : null}
+        onSave={async (t) => {
+          store.setToken(t)
+          clientRef.current = createClient(t)
+          try {
+            const u = await clientRef.current.user()
+            store.setUser(u)
+            setUser(u)
+            if (t !== token) setData(EMPTY_FEED)
+            setToken(t)
+            setStatus({ kind: 'loading' })
+            lastFetch.current = 0
+            refresh(true)
+            return null
+          } catch (e) {
+            const cause = e instanceof ApiError ? e.cause : 'http'
+            setStatus({ kind: 'error', cause, status: e instanceof ApiError ? e.status : 0 })
+            return cause
+          }
+        }}
+        onMarkUnseen={() => setSeen([])}
+        onSignOut={() => {
+          store.clear()
+          clientRef.current = null
+          setToken('')
+          setUser(null)
+          setData(EMPTY_FEED)
+          setSeen([])
+          setStarOverrides({})
+        }}
+      />
+    )
+  }
+
   return (
-    <main className="feed">
-      {cards.map((label) => (
-        <section className="card" key={label}>
-          <div className="card-top">GitTok</div>
-          {label}
-          <div className="card-bottom">placeholder</div>
-        </section>
-      ))}
-    </main>
+    <Feed
+      cards={cards}
+      end={end}
+      statsFor={statsFor}
+      compares={data.compares}
+      isStarred={isStarred}
+      onStar={toggleStar}
+      onSeen={onSeen}
+      onNearPush={onNearPush}
+      onRefresh={() => refresh(status.kind === 'error')}
+      offline={offline}
+      toast={toast}
+      hint={hint}
+      onDismissHint={() => {
+        store.dismissHint()
+        setHint(false)
+      }}
+    />
   )
 }
