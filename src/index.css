@@ -1,0 +1,64 @@
+/* Shell rules from .scratch/gittok/research/ios-pwa-quirks.md, section 9. */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Belt and braces for WebKit bug 222654. */
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+}
+
+.feed {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: none;
+}
+
+/* WebKit bug 254868: dvh excludes insets in standalone mode. */
+@media (display-mode: standalone) {
+  .feed {
+    height: 100vh;
+  }
+}
+
+.card {
+  position: relative;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+}
+
+/* Overlays are absolute, never fixed (WebKit bug 237961). */
+.card-top,
+.card-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 16px;
+}
+
+.card-top {
+  top: 0;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+}
+
+.card-bottom {
+  bottom: 0;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
