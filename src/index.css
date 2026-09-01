@@ -108,7 +108,7 @@ a {
   left: 0;
   right: 0;
   padding: 16px 72px 16px 16px;
-  padding-top: calc(var(--inset-top) + 24px);
+  padding-top: calc(var(--inset-top) + 40px);
 }
 
 .type {
@@ -145,7 +145,7 @@ a {
 
 .gear {
   position: absolute;
-  top: calc(var(--inset-top) + 12px);
+  top: calc(var(--inset-top) + 28px);
   right: 8px;
   width: 44px;
   height: 44px;
