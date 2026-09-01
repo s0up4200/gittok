@@ -222,7 +222,9 @@ function groupKey(c: Card): string | null {
   return null
 }
 
-// received_events also carries stars by anyone on a watched repo. Only stars by followed users make cards.
+// received_events also carries stars and forks by anyone on a watched repo. Only ones by followed users make cards.
+const BY_FOLLOWED = new Set(['WatchEvent', 'ForkEvent'])
+
 export function buildFeed(events: Event[], starred: StarredRepo[], seen: Set<string>, now: number, kinds: Set<Kind>, following: Set<string>): Card[] {
   const oldest = now - WINDOW_MS
   // Dedupe by card id: repeated event pages, and the same release from two events or two Sources.
@@ -236,7 +238,7 @@ export function buildFeed(events: Event[], starred: StarredRepo[], seen: Set<str
   for (const e of events) {
     const kind = KIND_OF[e.type]
     if (kind && !kinds.has(kind)) continue
-    if (kind === 'stars' && !following.has(e.actor.login)) continue
+    if (BY_FOLLOWED.has(e.type) && !following.has(e.actor.login)) continue
     add(toCard(e))
   }
   if (kinds.has('releases')) for (const r of starred) add(starredReleaseCard(r))

@@ -181,10 +181,14 @@ describe('release body', () => {
   })
 })
 
-describe('stars', () => {
-  // received_events carries stars by anyone on a watched repo. Only stars by followed users are feed material.
-  test('keeps stars by followed users only', () => {
-    const events = [ev('WatchEvent', 1, { action: 'started' }, { actor: 'alice' }), ev('WatchEvent', 2, { action: 'started' }, { actor: 'stranger', repo: 'octo/other' })]
+describe('stars and forks', () => {
+  // received_events carries stars and forks by anyone on a watched repo. Only ones by followed users are feed material.
+  test('keeps stars and forks by followed users only', () => {
+    const events = [
+      ev('WatchEvent', 1, { action: 'started' }, { actor: 'alice' }),
+      ev('WatchEvent', 2, { action: 'started' }, { actor: 'stranger', repo: 'octo/other' }),
+      ev('ForkEvent', 3, { forkee: { full_name: 'stranger/repo', html_url: 'u' } }, { actor: 'stranger', repo: 'octo/third' }),
+    ]
     expect(build(events).map((c) => c.actors[0]!.login)).toEqual(['alice'])
   })
 })
