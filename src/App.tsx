@@ -28,6 +28,7 @@ export default function App() {
   const [hint, setHint] = useState(isIosSafariTab && !store.hintDismissed())
   const [kinds, setKinds] = useState<Kind[]>(store.kinds)
   const [debug, setDebug] = useState(store.debug)
+  const [lastError, setLastError] = useState('')
 
   const dataRef = useRef(data)
   const clientRef = useRef<Client | null>(null)
@@ -103,8 +104,10 @@ export default function App() {
       setStarOverrides({})
       setOffline(false)
       setStatus({ kind: 'ok' })
+      setLastError('')
     } catch (e) {
       const err = e instanceof ApiError ? e : new ApiError('http', 0)
+      setLastError(`${new Date().toLocaleTimeString()} ${e instanceof Error ? e.message : String(e)}`)
       if (err.cause === 'offline') setOffline(true)
       if (err.cause === 'token-rejected') setData(EMPTY_FEED)
       setStatus({ kind: 'error', cause: err.cause, status: err.status, resetAt: err.resetAt })
@@ -245,6 +248,17 @@ export default function App() {
       toast={toast}
       hint={hint}
       debug={debug}
+      debugInfo={{
+        build: __COMMIT__,
+        status: JSON.stringify(status),
+        offline,
+        // Debug readout only. Refs are read during render so the values can lag one render.
+        // oxlint-disable-next-line react/refs
+        inflight: inflight.current,
+        // oxlint-disable-next-line react/refs
+        lastFetch: lastFetch.current ? new Date(lastFetch.current).toLocaleTimeString() : 'never',
+        lastError,
+      }}
       onDismissHint={() => {
         store.dismissHint()
         setHint(false)

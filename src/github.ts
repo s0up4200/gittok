@@ -159,8 +159,10 @@ export function createClient(token: string, fetchImpl: Fetch = (u, i) => fetch(u
           ...init.headers,
         },
       })
-    } catch {
-      throw new ApiError('offline', 0)
+    } catch (e) {
+      const err = new ApiError('offline', 0)
+      err.message += `: ${e instanceof Error ? `${e.name} ${e.message}` : String(e)}`
+      throw err
     }
     const rem = res.headers.get('x-ratelimit-remaining')
     if (rem !== null) remaining = Number(rem)

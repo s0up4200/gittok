@@ -28,6 +28,7 @@ type Props = {
   toast: string
   hint: boolean
   debug: boolean
+  debugInfo: Record<string, string | number | boolean>
   onDismissHint: () => void
 }
 
@@ -155,7 +156,7 @@ export function Feed(p: Props) {
         </button>
       )}
       {p.offline && <div className="pill offline-chip">offline</div>}
-      {p.debug && <Debug />}
+      {p.debug && <Debug extra={p.debugInfo} />}
       {p.toast && <div className="toast">{p.toast}</div>}
       {p.hint && (
         <div className="hint">

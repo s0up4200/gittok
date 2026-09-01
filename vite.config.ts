@@ -7,6 +7,7 @@ const base = process.env.BASE_PATH ?? '/'
 
 export default defineConfig({
   base,
+  define: { __COMMIT__: JSON.stringify((process.env.GITHUB_SHA ?? 'dev').slice(0, 7)) },
   plugins: [
     react(),
     VitePWA({

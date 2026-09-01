@@ -30,8 +30,8 @@ function measure() {
   }
 }
 
-export function Debug() {
-  const [m, setM] = useState<Record<string, string | number>>({})
+export function Debug({ extra }: { extra: Record<string, string | number | boolean> }) {
+  const [m, setM] = useState<Record<string, string | number | boolean>>({})
   useEffect(() => {
     const run = () => setM(measure())
     run()
@@ -40,7 +40,7 @@ export function Debug() {
   }, [])
   return (
     <pre className="debug">
-      {Object.entries(m)
+      {Object.entries({ ...extra, ...m })
         .map(([k, v]) => `${k}: ${v}`)
         .join('\n')}
     </pre>
