@@ -91,7 +91,7 @@ export function CardView({ card, stats, commits, starred, onStar, now }: Props) 
           {starred ? <StarSolidIcon className="icon" /> : <StarIcon className="icon" />}
           <small>{starred ? 'Starred' : 'Star'}</small>
         </button>
-        <a className="rail-btn" href={card.url} target="_blank" rel="noreferrer">
+        <a className="rail-btn" href={card.url} target="_blank">
           <ArrowTopRightOnSquareIcon className="icon" />
           <small>Open</small>
         </a>
