@@ -64,10 +64,13 @@ a {
   scrollbar-width: none;
 }
 
-/* WebKit bug 254868: dvh excludes insets in standalone mode. */
+/* WebKit bug 254868: in an installed app, dvh excludes the safe-area insets.
+   100vh includes them, but on some iOS builds it is taller than the web view and the card bottom is cut off.
+   min() of both stays correct in every observed case. */
 @media (display-mode: standalone) {
-  .shell {
-    height: 100vh;
+  .shell,
+  .settings {
+    height: min(100vh, calc(100dvh + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)));
   }
 }
 
@@ -370,12 +373,6 @@ a {
   overflow-wrap: anywhere;
 }
 
-@media (display-mode: standalone) {
-  .settings {
-    height: 100vh;
-  }
-}
-
 .settings header {
   display: flex;
   align-items: center;
@@ -435,6 +432,22 @@ a {
 
 .settings .row > * {
   flex: 1;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  font-weight: 400;
+}
+
+.toggle input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex: none;
+  accent-color: #ffd166;
 }
 
 .error {

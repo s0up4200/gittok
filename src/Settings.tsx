@@ -1,6 +1,7 @@
 import { ArrowTopRightOnSquareIcon, ChevronLeftIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import { version } from '../package.json'
+import { KINDS, type Kind } from './feed.ts'
 import type { Cause, User } from './github.ts'
 import { STARRED_CAP } from './github.ts'
 
@@ -19,6 +20,8 @@ type Props = {
   token: string
   user: User | null
   capped: boolean
+  kinds: Kind[]
+  onToggleKind: (kind: Kind) => void
   error: Cause | null
   onSave: (token: string) => Promise<Cause | null>
   onMarkUnseen: () => void
@@ -72,6 +75,20 @@ export function Settings(p: Props) {
           </p>
         )}
         {p.capped && <p className="dim">The starred list was cut short. Starred releases cover at most the {STARRED_CAP} most recently starred repos.</p>}
+      </section>
+
+      <section>
+        <label>Show in feed</label>
+        {KINDS.map((k) => (
+          <label key={k.kind} className="toggle">
+            <input type="checkbox" checked={p.kinds.includes(k.kind)} onChange={() => p.onToggleKind(k.kind)} />
+            <span>
+              <b>{k.label}</b>
+              <br />
+              <span className="dim">{k.detail}</span>
+            </span>
+          </label>
+        ))}
       </section>
 
       <section>

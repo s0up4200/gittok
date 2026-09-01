@@ -62,6 +62,28 @@ export type Card = {
   push?: { ref: string; before: string; head: string; count: number }
 }
 
+// Feed filters, one per GitHub feed category the Events API can serve.
+export type Kind = 'releases' | 'stars' | 'repos' | 'activity' | 'pushes'
+export const KINDS: { kind: Kind; label: string; detail: string }[] = [
+  { kind: 'releases', label: 'Releases', detail: 'From watched and starred repos' },
+  { kind: 'stars', label: 'Stars', detail: 'Repos being starred by people' },
+  { kind: 'repos', label: 'Repositories', detail: 'Created, forked, or made public' },
+  { kind: 'activity', label: 'Repository activity', detail: 'Issues and pull requests' },
+  { kind: 'pushes', label: 'Pushes', detail: 'Commits pushed to a branch' },
+]
+export const DEFAULT_KINDS: Kind[] = ['releases', 'stars', 'repos', 'pushes']
+
+const KIND_OF: Record<string, Kind> = {
+  ReleaseEvent: 'releases',
+  WatchEvent: 'stars',
+  ForkEvent: 'repos',
+  CreateEvent: 'repos',
+  PublicEvent: 'repos',
+  PullRequestEvent: 'activity',
+  IssuesEvent: 'activity',
+  PushEvent: 'pushes',
+}
+
 // Seen ids with the card time, so pruning can drop the oldest cards first.
 export type Seen = [id: string, at: number][]
 
@@ -199,7 +221,7 @@ function groupKey(c: Card): string | null {
   return null
 }
 
-export function buildFeed(events: Event[], starred: StarredRepo[], seen: Set<string>, now: number): Card[] {
+export function buildFeed(events: Event[], starred: StarredRepo[], seen: Set<string>, now: number, kinds: Set<Kind>): Card[] {
   const oldest = now - WINDOW_MS
   // Dedupe by card id: repeated event pages, and the same release from two events or two Sources.
   const ids = new Set<string>()
@@ -209,8 +231,12 @@ export function buildFeed(events: Event[], starred: StarredRepo[], seen: Set<str
     ids.add(c.id)
     cards.push(c)
   }
-  for (const e of events) add(toCard(e))
-  for (const r of starred) add(starredReleaseCard(r))
+  for (const e of events) {
+    const kind = KIND_OF[e.type]
+    if (kind && !kinds.has(kind)) continue
+    add(toCard(e))
+  }
+  if (kinds.has('releases')) for (const r of starred) add(starredReleaseCard(r))
   cards.sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
 
   // Collapse. Newest first, so the first card of a group keeps its slot and older ones fold in.

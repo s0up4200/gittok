@@ -30,3 +30,7 @@ bun run lint
 ```
 
 The specification and planning notes are in `.scratch/gittok/`. The glossary is in `CONTEXT.md`.
+
+## License
+
+MIT. See `LICENSE`.

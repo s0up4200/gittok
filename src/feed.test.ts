@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildFeed, markSeen, releaseCardId, type Event, type StarredRepo } from './feed.ts'
+import { buildFeed, KINDS, markSeen, releaseCardId, type Event, type Kind, type StarredRepo } from './feed.ts'
 
 const NOW = Date.parse('2026-09-01T12:00:00Z')
 const H = 3_600_000
@@ -40,7 +40,8 @@ function starred(hoursAgo: number, id: number, name = 'octo/repo'): StarredRepo 
   }
 }
 
-const build = (events: Event[], stars: StarredRepo[] = [], seen = new Set<string>()) => buildFeed(events, stars, seen, NOW)
+const ALL = new Set(KINDS.map((k) => k.kind))
+const build = (events: Event[], stars: StarredRepo[] = [], seen = new Set<string>()) => buildFeed(events, stars, seen, NOW, ALL)
 
 describe('type filtering', () => {
   test('keeps the eight types with their shapes and drops the rest', () => {
@@ -73,6 +74,27 @@ describe('type filtering', () => {
       ev('CreateEvent', 1, { ref_type: 'branch', ref: 'feature' }),
     ])
     expect(cards.map((c) => c.label)).toEqual(['PR opened', 'PR merged'])
+  })
+})
+
+describe('kinds', () => {
+  test('filters both sources by the enabled kinds', () => {
+    const events = [
+      release(1, 7),
+      push(2, 1),
+      ev('PullRequestEvent', 3, { action: 'opened', pull_request: { number: 1, title: 'PR', body: null, merged: false, html_url: 'u' } }),
+      ev('IssuesEvent', 4, { action: 'opened', issue: { number: 2, title: 'Issue', body: null, html_url: 'u' } }),
+      ev('WatchEvent', 5, { action: 'started' }),
+      ev('ForkEvent', 6, { forkee: { full_name: 'alice/repo', html_url: 'u' } }),
+      ev('CreateEvent', 7, { ref_type: 'repository', description: 'new' }),
+      ev('PublicEvent', 8),
+    ]
+    const stars = [starred(9, 8, 'other/repo')]
+    const labels = (kinds: Kind[]) => buildFeed(events, stars, new Set(), NOW, new Set(kinds)).map((c) => c.label)
+    expect(labels(['releases'])).toEqual(['Release', 'Release'])
+    expect(labels(['stars', 'repos'])).toEqual(['Star', 'Fork', 'New repo', 'Went public'])
+    expect(labels(['activity', 'pushes'])).toEqual(['Push', 'PR opened', 'Issue opened'])
+    expect(labels([])).toEqual([])
   })
 })
 

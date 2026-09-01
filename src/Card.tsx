@@ -82,7 +82,7 @@ export function CardView({ card, stats, commits, starred, onStar, now }: Props) 
       <div className="rail">
         <button className="rail-btn" aria-pressed={starred} aria-label={starred ? 'Unstar' : 'Star'} onClick={() => onStar(card.repo)}>
           {starred ? <StarSolidIcon className="icon" /> : <StarIcon className="icon" />}
-          <small>Star</small>
+          <small>{starred ? 'Starred' : 'Star'}</small>
         </button>
         <a className="rail-btn" href={card.url} target="_blank" rel="noreferrer">
           <ArrowTopRightOnSquareIcon className="icon" />

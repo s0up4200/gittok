@@ -1,5 +1,5 @@
 // localStorage. Token as a plain string, everything else as JSON.
-import type { Seen, StarredRepo } from './feed.ts'
+import { DEFAULT_KINDS, type Kind, type Seen, type StarredRepo } from './feed.ts'
 import type { EventCache, StatsMap, User } from './github.ts'
 
 export type FeedData = {
@@ -19,6 +19,7 @@ const KEYS = {
   seen: 'gittok.seen',
   feed: 'gittok.feed',
   hint: 'gittok.hint',
+  kinds: 'gittok.kinds',
 } as const
 
 function read<T>(key: string, fallback: T): T {
@@ -47,6 +48,8 @@ export const store = {
   setSeen: (s: Seen) => write(KEYS.seen, s),
   feed: () => read<FeedData>(KEYS.feed, EMPTY_FEED),
   setFeed: (f: FeedData) => write(KEYS.feed, f),
+  kinds: () => read<Kind[]>(KEYS.kinds, DEFAULT_KINDS),
+  setKinds: (k: Kind[]) => write(KEYS.kinds, k),
   hintDismissed: () => read(KEYS.hint, false),
   dismissHint: () => write(KEYS.hint, true),
   clear: () => Object.values(KEYS).forEach((k) => localStorage.removeItem(k)),

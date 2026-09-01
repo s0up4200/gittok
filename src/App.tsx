@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { buildFeed, compareKey, markSeen, seenIds, type Card, type RepoStats, type Seen } from './feed.ts'
+import { buildFeed, compareKey, markSeen, seenIds, type Card, type Kind, type RepoStats, type Seen } from './feed.ts'
 import { ApiError, createClient, type Cause, type Client, type StatsMap } from './github.ts'
 import { EMPTY_FEED, store, type FeedData } from './store.ts'
 import { Feed, type EndState } from './Feed.tsx'
@@ -26,9 +26,11 @@ export default function App() {
   const [starOverrides, setStarOverrides] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState('')
   const [hint, setHint] = useState(isIosSafariTab && !store.hintDismissed())
+  const [kinds, setKinds] = useState<Kind[]>(store.kinds)
 
   const dataRef = useRef(data)
   const seenRef = useRef(seen)
+  const kindsRef = useRef(kinds)
   const clientRef = useRef<Client | null>(null)
   const lastFetch = useRef(0)
   const inflight = useRef(false)
@@ -42,6 +44,10 @@ export default function App() {
     seenRef.current = seen
     store.setSeen(seen)
   }, [seen])
+  useEffect(() => {
+    kindsRef.current = kinds
+    store.setKinds(kinds)
+  }, [kinds])
   useEffect(() => {
     const h = () => setHash(location.hash)
     addEventListener('hashchange', h)
@@ -66,15 +72,17 @@ export default function App() {
     lastFetch.current = Date.now()
     setStatus({ kind: 'loading' })
     try {
-      const [ev, st] = await Promise.all([
-        c.events(dataRef.current.events, (_, cache) => setData((d) => ({ ...d, events: cache }))),
-        c.starred((repos) => setData((d) => ({ ...d, starred: repos }))),
-      ])
+      const ev = await c.events(dataRef.current.events, (_, cache) => setData((d) => ({ ...d, events: cache })))
       const now = Date.now()
-      const starredNames = new Set(st.repos.map((r) => r.name))
-      const cards = buildFeed(ev.events, [], seenIds(seenRef.current), now)
-      const repos = [...new Set(cards.map((x) => x.repo))].filter((r) => !starredNames.has(r))
-      const fresh = repos.length && !c.lowOnRateLimit() ? await c.stats(repos) : {}
+      const cards = buildFeed(ev.events, [], seenIds(seenRef.current), now, new Set(kindsRef.current))
+      // Repos in the cached starred list carry their own stats and star state.
+      const cachedStarred = new Set(dataRef.current.starred.map((r) => r.name))
+      const repos = [...new Set(cards.map((x) => x.repo))].filter((r) => !cachedStarred.has(r))
+      // Stats and star state for the cards on screen land first. Starred pages can take seconds on a big list.
+      const [fresh, st] = await Promise.all([
+        repos.length && !c.lowOnRateLimit() ? c.stats(repos).then((s) => (setData((d) => ({ ...d, stats: { ...d.stats, ...s } })), s)) : ({} as StatsMap),
+        c.starred((list) => setData((d) => ({ ...d, starred: list }))),
+      ])
       const compareKeys = new Set(cards.filter((x) => x.push).map(compareKey))
       setData((d) => {
         // Keep stats and compare results only for repos and pushes still in the feed.
@@ -125,7 +133,10 @@ export default function App() {
 
   // Rebuilds on every seen mark too. Feed only ever adds cards from a rebuild, so nothing moves under the thumb.
   // The clock is the last fetch time, so the memo stays pure. Before the first fetch there is nothing to window.
-  const cards = useMemo(() => (token ? buildFeed(allEvents(data), data.starred, seenIds(seen), data.checkedAt ?? 0) : []), [token, data, seen])
+  const cards = useMemo(
+    () => (token ? buildFeed(allEvents(data), data.starred, seenIds(seen), data.checkedAt ?? 0, new Set(kinds)) : []),
+    [token, data, seen, kinds],
+  )
 
   const starredMap = useMemo(() => new Map(data.starred.map((r) => [r.name, r])), [data.starred])
   const statsFor = (repo: string): RepoStats | undefined => data.stats[repo] ?? starredMap.get(repo)
@@ -175,6 +186,8 @@ export default function App() {
         token={token}
         user={user}
         capped={data.capped}
+        kinds={kinds}
+        onToggleKind={(k) => setKinds((ks) => (ks.includes(k) ? ks.filter((x) => x !== k) : [...ks, k]))}
         error={status.kind === 'error' && (status.cause === 'token-rejected' || status.cause === 'needs-scope') ? status.cause : null}
         onSave={async (t) => {
           store.setToken(t)
