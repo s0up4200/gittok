@@ -45,6 +45,10 @@ const STARRED_QUERY = `query($after: String) {
   }
 }`
 
+const FOLLOWING_QUERY = `query($after: String) {
+  viewer { following(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { login } } }
+}`
+
 const STATS_FIELDS = 'description stargazerCount forkCount viewerHasStarred issues(states: OPEN) { totalCount } primaryLanguage { name color }'
 
 type GqlRepo = {
@@ -67,6 +71,8 @@ type GqlRepo = {
     isPrerelease: boolean
   } | null
 }
+
+type FollowingPage = { viewer: { following: { pageInfo: { hasNextPage: boolean; endCursor: string }; nodes: { login: string }[] } } }
 
 type StarredPage = {
   viewer: { starredRepositories: { isOverLimit: boolean; pageInfo: { hasNextPage: boolean; endCursor: string }; nodes: GqlRepo[] } }
@@ -247,6 +253,19 @@ export function createClient(token: string, fetchImpl: Fetch = (u, i) => fetch(u
         after = conn.pageInfo.endCursor
       }
       return { repos, capped }
+    },
+
+    // Logins the user follows, 100 per page.
+    async following(): Promise<string[]> {
+      const out: string[] = []
+      let after: string | null = null
+      for (;;) {
+        const data: FollowingPage = await graphql(FOLLOWING_QUERY, { after })
+        const conn = data.viewer.following
+        out.push(...conn.nodes.map((n) => n.login))
+        if (!conn.pageInfo.hasNextPage) return out
+        after = conn.pageInfo.endCursor
+      }
     },
 
     // Stats for repos that received events mention, 50 per aliased query.

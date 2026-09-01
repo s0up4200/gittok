@@ -71,9 +71,10 @@ export default function App() {
     try {
       const ev = await c.events(dataRef.current.events, (_, cache) => setData((d) => ({ ...d, events: cache })))
       const now = Date.now()
+      const following = await c.following()
       // Every card the cache can show, seen or not, all kinds. The Feed keeps seen cards on screen and kinds can
       // switch on later, so stats and compares live as long as the events behind them.
-      const cards = buildFeed(ev.events, [], new Set(), now, new Set(KINDS.map((k) => k.kind)))
+      const cards = buildFeed(ev.events, [], new Set(), now, new Set(KINDS.map((k) => k.kind)), new Set(following))
       const inFeed = new Set(cards.map((x) => x.repo))
       // Repos in the cached starred list carry their own stats and star state.
       const cachedStarred = new Set(dataRef.current.starred.map((r) => r.name))
@@ -93,6 +94,7 @@ export default function App() {
       setData((d) => ({
         events: ev.cache,
         starred: st.repos,
+        following,
         stats: Object.fromEntries(Object.entries(d.stats).filter(([r]) => inFeed.has(r))),
         compares: Object.fromEntries(Object.entries(d.compares).filter(([k]) => compareKeys.has(k))),
         checkedAt: now,
@@ -132,7 +134,7 @@ export default function App() {
   // Rebuilds on every seen mark too. Feed only ever adds cards from a rebuild, so nothing moves under the thumb.
   // The clock is the last fetch time, so the memo stays pure. Before the first fetch there is nothing to window.
   const cards = useMemo(
-    () => (token ? buildFeed(allEvents(data), data.starred, seenIds(seen), data.checkedAt ?? 0, new Set(kinds)) : []),
+    () => (token ? buildFeed(allEvents(data), data.starred, seenIds(seen), data.checkedAt ?? 0, new Set(kinds), new Set(data.following)) : []),
     [token, data, seen, kinds],
   )
 

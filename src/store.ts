@@ -5,13 +5,14 @@ import type { EventCache, StatsMap, User } from './github.ts'
 export type FeedData = {
   events: EventCache
   starred: StarredRepo[]
+  following: string[]
   stats: StatsMap
   compares: Record<string, string[]>
   checkedAt: number | null
   capped: boolean
 }
 
-export const EMPTY_FEED: FeedData = { events: {}, starred: [], stats: {}, compares: {}, checkedAt: null, capped: false }
+export const EMPTY_FEED: FeedData = { events: {}, starred: [], following: [], stats: {}, compares: {}, checkedAt: null, capped: false }
 
 const KEYS = {
   token: 'gittok.token',

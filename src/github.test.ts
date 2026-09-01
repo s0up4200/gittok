@@ -222,3 +222,15 @@ describe('compare and star', () => {
     ])
   })
 })
+
+describe('following', () => {
+  const page = (n: number, hasNextPage: boolean) => ({
+    body: { data: { viewer: { following: { pageInfo: { hasNextPage, endCursor: `c${n}` }, nodes: [{ login: `u${n}` }] } } } },
+  })
+
+  test('pages with the cursor and returns logins', async () => {
+    const { fetchImpl, calls } = fake([page(1, true), page(2, false)])
+    expect(await createClient('tok', fetchImpl).following()).toEqual(['u1', 'u2'])
+    expect(calls.map((c) => JSON.parse(c.init.body as string).variables.after)).toEqual([null, 'c1'])
+  })
+})

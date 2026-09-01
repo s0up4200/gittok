@@ -41,7 +41,7 @@ function starred(hoursAgo: number, id: number, name = 'octo/repo'): StarredRepo 
 }
 
 const ALL = new Set(KINDS.map((k) => k.kind))
-const build = (events: Event[], stars: StarredRepo[] = [], seen = new Set<string>()) => buildFeed(events, stars, seen, NOW, ALL)
+const build = (events: Event[], stars: StarredRepo[] = [], seen = new Set<string>(), following = new Set(['alice', 'bob', 'carol', 'dave', 'erin'])) => buildFeed(events, stars, seen, NOW, ALL, following)
 
 describe('type filtering', () => {
   test('keeps the eight types with their shapes and drops the rest', () => {
@@ -90,7 +90,7 @@ describe('kinds', () => {
       ev('PublicEvent', 8),
     ]
     const stars = [starred(9, 8, 'other/repo')]
-    const labels = (kinds: Kind[]) => buildFeed(events, stars, new Set(), NOW, new Set(kinds)).map((c) => c.label)
+    const labels = (kinds: Kind[]) => buildFeed(events, stars, new Set(), NOW, new Set(kinds), new Set(['alice', 'bob', 'carol', 'dave', 'erin'])).map((c) => c.label)
     expect(labels(['releases'])).toEqual(['Release', 'Release'])
     expect(labels(['stars', 'repos'])).toEqual(['Star', 'Fork', 'New repo', 'Went public'])
     expect(labels(['activity', 'pushes'])).toEqual(['Push', 'PR opened', 'Issue opened'])
@@ -176,7 +176,15 @@ describe('seen', () => {
 describe('release body', () => {
   test('keeps every line so the card can unfold a long changelog', () => {
     const notes = Array.from({ length: 30 }, (_, i) => `- change ${i}`).join('\n')
-    const [card] = buildFeed([release(1, 7, notes)], [], new Set(), NOW, new Set(KINDS.map((k) => k.kind)))
+    const [card] = buildFeed([release(1, 7, notes)], [], new Set(), NOW, new Set(KINDS.map((k) => k.kind)), new Set())
     expect(card!.body).toHaveLength(30)
+  })
+})
+
+describe('stars', () => {
+  // received_events carries stars by anyone on a watched repo. Only stars by followed users are feed material.
+  test('keeps stars by followed users only', () => {
+    const events = [ev('WatchEvent', 1, { action: 'started' }, { actor: 'alice' }), ev('WatchEvent', 2, { action: 'started' }, { actor: 'stranger', repo: 'octo/other' })]
+    expect(build(events).map((c) => c.actors[0]!.login)).toEqual(['alice'])
   })
 })
