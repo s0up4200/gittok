@@ -3,6 +3,13 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* iOS 27 reports a top inset even when the web view starts below the status bar (WebKit bug 317153).
+     100vh - 100dvh is the part of the screen outside the view, so subtract it. Zero in a browser tab. */
+  --inset-top: max(0px, calc(env(safe-area-inset-top, 0px) - (100vh - 100dvh)));
+  --inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 html,
 body {
   height: 100%;
@@ -101,7 +108,7 @@ a {
   left: 0;
   right: 0;
   padding: 16px 72px 16px 16px;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
+  padding-top: calc(var(--inset-top) + 24px);
 }
 
 .type {
@@ -138,7 +145,7 @@ a {
 
 .gear {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(var(--inset-top) + 12px);
   right: 8px;
   width: 44px;
   height: 44px;
@@ -158,7 +165,7 @@ a {
   flex: 1;
   min-width: 0;
   padding: 16px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding-bottom: calc(var(--inset-bottom) + 32px);
 }
 
 .actor {
@@ -207,7 +214,7 @@ a {
   flex-direction: column;
   gap: 8px;
   padding: 0 8px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding-bottom: calc(var(--inset-bottom) + 32px);
 }
 
 .rail-btn {
@@ -240,7 +247,7 @@ a {
 .end-body {
   flex: 1;
   padding: 24px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+  padding-bottom: calc(var(--inset-bottom) + 40px);
 }
 
 .end-body .dim {
@@ -269,7 +276,7 @@ a {
 }
 
 .skeleton .card-body {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+  padding-bottom: calc(var(--inset-bottom) + 88px);
 }
 
 .bar {
@@ -303,7 +310,7 @@ a {
 }
 
 .new-pill {
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(var(--inset-top) + 12px);
   left: 50%;
   transform: translateX(-50%);
   background: #fff;
@@ -311,7 +318,7 @@ a {
 }
 
 .offline-chip {
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(var(--inset-top) + 12px);
   left: 8px;
   min-height: 28px;
   padding: 0 10px;
@@ -335,7 +342,7 @@ a {
 
 .toast {
   position: absolute;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+  bottom: calc(var(--inset-bottom) + 40px);
   left: 50%;
   transform: translateX(-50%);
   padding: 10px 16px;
@@ -349,7 +356,7 @@ a {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: calc(max(8px, env(safe-area-inset-bottom, 0px)) + 4px);
+  bottom: calc(max(8px, var(--inset-bottom)) + 4px);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -378,8 +385,8 @@ a {
   height: 100%;
   overflow-y: auto;
   padding: 16px;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding-top: calc(var(--inset-top) + 24px);
+  padding-bottom: calc(var(--inset-bottom) + 32px);
   overflow-wrap: anywhere;
 }
 
