@@ -89,18 +89,7 @@ a {
   overflow-wrap: anywhere;
 }
 
-/* Colour wash: the actor's avatar, blurred. The card fades to black at the bottom so text stays readable
-   and the strip iOS paints below the web view blends in. */
-.card::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 45%;
-  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.75));
-  pointer-events: none;
-}
+/* Colour wash: the actor's avatar, blurred. */
 
 .wash {
   position: absolute;
