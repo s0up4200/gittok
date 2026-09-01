@@ -27,6 +27,7 @@ type Props = {
   offline: boolean
   toast: string
   hint: boolean
+  debug: boolean
   onDismissHint: () => void
 }
 
@@ -154,7 +155,7 @@ export function Feed(p: Props) {
         </button>
       )}
       {p.offline && <div className="pill offline-chip">offline</div>}
-      {location.search.includes('debug') && <Debug />}
+      {p.debug && <Debug />}
       {p.toast && <div className="toast">{p.toast}</div>}
       {p.hint && (
         <div className="hint">

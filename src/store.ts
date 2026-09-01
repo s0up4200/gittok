@@ -20,6 +20,7 @@ const KEYS = {
   feed: 'gittok.feed',
   hint: 'gittok.hint',
   kinds: 'gittok.kinds',
+  debug: 'gittok.debug',
 } as const
 
 function read<T>(key: string, fallback: T): T {
@@ -50,6 +51,8 @@ export const store = {
   setFeed: (f: FeedData) => write(KEYS.feed, f),
   kinds: () => read<Kind[]>(KEYS.kinds, DEFAULT_KINDS),
   setKinds: (k: Kind[]) => write(KEYS.kinds, k),
+  debug: () => read(KEYS.debug, false),
+  setDebug: (on: boolean) => write(KEYS.debug, on),
   hintDismissed: () => read(KEYS.hint, false),
   dismissHint: () => write(KEYS.hint, true),
   clear: () => Object.values(KEYS).forEach((k) => localStorage.removeItem(k)),

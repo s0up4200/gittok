@@ -1,4 +1,4 @@
-// Viewport readout for device debugging. Shows when the URL has ?debug.
+// Viewport readout for device debugging. Toggled in settings.
 import { useEffect, useState } from 'react'
 
 // Height of a hidden div sized with the given CSS length, so units and env() resolve like they do in layout.

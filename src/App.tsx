@@ -27,6 +27,7 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [hint, setHint] = useState(isIosSafariTab && !store.hintDismissed())
   const [kinds, setKinds] = useState<Kind[]>(store.kinds)
+  const [debug, setDebug] = useState(store.debug)
 
   const dataRef = useRef(data)
   const seenRef = useRef(seen)
@@ -188,6 +189,11 @@ export default function App() {
         capped={data.capped}
         kinds={kinds}
         onToggleKind={(k) => setKinds((ks) => (ks.includes(k) ? ks.filter((x) => x !== k) : [...ks, k]))}
+        debug={debug}
+        onToggleDebug={() => {
+          store.setDebug(!debug)
+          setDebug(!debug)
+        }}
         error={status.kind === 'error' && (status.cause === 'token-rejected' || status.cause === 'needs-scope') ? status.cause : null}
         onSave={async (t) => {
           store.setToken(t)
@@ -236,6 +242,7 @@ export default function App() {
       offline={offline}
       toast={toast}
       hint={hint}
+      debug={debug}
       onDismissHint={() => {
         store.dismissHint()
         setHint(false)

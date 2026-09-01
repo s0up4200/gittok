@@ -22,6 +22,8 @@ type Props = {
   capped: boolean
   kinds: Kind[]
   onToggleKind: (kind: Kind) => void
+  debug: boolean
+  onToggleDebug: () => void
   error: Cause | null
   onSave: (token: string) => Promise<Cause | null>
   onMarkUnseen: () => void
@@ -119,6 +121,17 @@ export function Settings(p: Props) {
         {note && <p className="dim">{note}</p>}
       </section>
       )}
+
+      <section>
+        <label className="toggle">
+          <input type="checkbox" checked={p.debug} onChange={p.onToggleDebug} />
+          <span>
+            <b>Viewport readout</b>
+            <br />
+            <span className="dim">Shows sizes and insets on the feed, for layout bugs</span>
+          </span>
+        </label>
+      </section>
 
       <footer className="dim">
         GitTok v{version} ·{' '}
