@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { ApiError, createClient, RATE_FLOOR, type Fetch } from './github.ts'
+import { ApiError, createClient, RATE_FLOOR, trimEvent, type Fetch } from './github.ts'
 
 type Call = { url: string; init: RequestInit }
 type Reply = { status?: number; body?: unknown; headers?: Record<string, string> }
@@ -232,5 +232,12 @@ describe('following', () => {
     const { fetchImpl, calls } = fake([page(1, true), page(2, false)])
     expect(await createClient('tok', fetchImpl).following()).toEqual(['u1', 'u2'])
     expect(calls.map((c) => JSON.parse(c.init.body as string).variables.after)).toEqual([null, 'c1'])
+  })
+})
+
+describe('trimEvent', () => {
+  test('slim PR payload: head branch stands in for the title', () => {
+    const e = trimEvent({ ...rawEvent(1), type: 'PullRequestEvent', payload: { action: 'merged', number: 7, pull_request: { id: 1, number: 7, url: 'u', base: { ref: 'main' }, head: { ref: 'feat/x' } } } })
+    expect(e.payload.pull_request).toEqual({ number: 7, title: 'feat/x', body: null, merged: false })
   })
 })

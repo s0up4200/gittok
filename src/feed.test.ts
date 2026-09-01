@@ -48,7 +48,7 @@ describe('type filtering', () => {
     const cards = build([
       release(1, 7),
       push(2, 1),
-      ev('PullRequestEvent', 3, { action: 'opened', pull_request: { number: 1, title: 'PR', body: null, merged: false, html_url: 'u' } }),
+      ev('PullRequestEvent', 3, { action: 'opened', pull_request: { number: 1, title: 'PR', body: null, merged: false } }),
       ev('IssuesEvent', 4, { action: 'opened', issue: { number: 2, title: 'Issue', body: null, html_url: 'u' } }),
       ev('WatchEvent', 5, { action: 'started' }),
       ev('ForkEvent', 6, { forkee: { full_name: 'alice/repo', html_url: 'u' } }),
@@ -64,16 +64,18 @@ describe('type filtering', () => {
 
   test('PR keeps opened and merged only, issue keeps opened only, create keeps repository only', () => {
     const pr = (action: string, merged: boolean) =>
-      ev('PullRequestEvent', 1, { action, pull_request: { number: 1, title: 'PR', body: null, merged, html_url: 'u' } })
+      ev('PullRequestEvent', 1, { action, pull_request: { number: 1, title: 'PR', body: null, merged } })
     const cards = build([
       pr('opened', false),
       pr('closed', true),
+      pr('merged', false),
       pr('closed', false),
       pr('labeled', false),
       ev('IssuesEvent', 1, { action: 'closed', issue: { number: 2, title: 'Issue', body: null, html_url: 'u' } }),
       ev('CreateEvent', 1, { ref_type: 'branch', ref: 'feature' }),
     ])
-    expect(cards.map((c) => c.label)).toEqual(['PR opened', 'PR merged'])
+    expect(cards.map((c) => c.label)).toEqual(['PR opened', 'PR merged', 'PR merged'])
+    expect(cards[0]!.url).toBe('https://github.com/octo/repo/pull/1')
   })
 })
 
@@ -82,7 +84,7 @@ describe('kinds', () => {
     const events = [
       release(1, 7),
       push(2, 1),
-      ev('PullRequestEvent', 3, { action: 'opened', pull_request: { number: 1, title: 'PR', body: null, merged: false, html_url: 'u' } }),
+      ev('PullRequestEvent', 3, { action: 'opened', pull_request: { number: 1, title: 'PR', body: null, merged: false } }),
       ev('IssuesEvent', 4, { action: 'opened', issue: { number: 2, title: 'Issue', body: null, html_url: 'u' } }),
       ev('WatchEvent', 5, { action: 'started' }),
       ev('ForkEvent', 6, { forkee: { full_name: 'alice/repo', html_url: 'u' } }),

@@ -92,7 +92,8 @@ export function trimEvent(e: any): Event {
   if (p.description !== undefined) payload.description = p.description
   if (p.pull_request) {
     const pr = p.pull_request
-    payload.pull_request = { number: pr.number, title: pr.title, body: cap(pr.body), merged: Boolean(pr.merged), html_url: pr.html_url }
+    // received_events carries a slim PR with no title. The head branch name stands in.
+    payload.pull_request = { number: pr.number, title: pr.title ?? pr.head?.ref ?? '', body: cap(pr.body), merged: Boolean(pr.merged) }
   }
   if (p.issue) payload.issue = { number: p.issue.number, title: p.issue.title, body: cap(p.issue.body), html_url: p.issue.html_url }
   if (p.release) {

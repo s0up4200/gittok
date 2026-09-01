@@ -17,7 +17,7 @@ export type Event = {
     head?: string
     before?: string
     description?: string | null
-    pull_request?: { number: number; title: string; body: string | null; merged: boolean; html_url: string }
+    pull_request?: { number: number; title: string; body: string | null; merged: boolean }
     issue?: { number: number; title: string; body: string | null; html_url: string }
     release?: { id: number; tag_name: string; name: string | null; body: string | null; html_url: string; prerelease: boolean }
     forkee?: { full_name: string; html_url: string }
@@ -150,14 +150,15 @@ function toCard(e: Event): Card | null {
     case 'PullRequestEvent': {
       const pr = p.pull_request
       if (!pr) return null
-      const merged = p.action === 'closed' && pr.merged
+      // received_events ships a slim PR: number, base, head, and a "merged" action. No html_url, title, or merged flag.
+      const merged = p.action === 'merged' || (p.action === 'closed' && pr.merged)
       if (p.action !== 'opened' && !merged) return null
       return {
         ...base,
         shape: 'change',
         label: merged ? 'PR merged' : 'PR opened',
         verb: merged ? 'merged' : 'opened',
-        url: pr.html_url,
+        url: `${base.url}/pull/${pr.number}`,
         title: pr.title,
         body: bodyLines(pr.body, 3),
         meta: `#${pr.number}`,
