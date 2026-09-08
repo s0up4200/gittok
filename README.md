@@ -1,36 +1,37 @@
 # GitTok
 
-TikTok, but for your GitHub feed. A swipeable, full-screen card interface that displays releases, pushes, pull requests, and stars from the users you follow and repositories you star.
+Swipe through releases, commits, pull requests, and stars from your GitHub feed.
 
-Doomscrolling, except every card is a changelog.
+[Open GitTok](https://s0up4200.github.io/gittok/), or run it yourself.
 
-This is a static, self-hosted application with no backend. It requires a personal access token, which is stored locally in your browser and never leaves it.
+Tap the gear icon and add a classic GitHub personal access token with the `public_repo` scope.
+The app stores your token in your browser and sends it only to `api.github.com`. There is no backend.
 
-## Run it
+## Run locally
 
 ```sh
 bun install
 bun run dev
 ```
 
-Open the app on your phone, tap the gear icon, and paste a classic personal access token with the `public_repo` scope. The token is stored in the browser's `localStorage` and is only sent to `api.github.com`.
-
 ## Host it
 
-Run `bun run build` to generate the static site in `dist/`, which can be served by any static host.
+Run `bun run build` and serve `dist/` with any static host.
 
-For GitHub Pages, the workflow in `.github/workflows/pages.yml` builds and deploys on every push to `main`. Enable Pages in repository settings with GitHub Actions as the source. The workflow sets `BASE_PATH=/<repo>/` to serve from the repository path. If deploying to a custom domain, set `BASE_PATH=/`.
+For GitHub Pages, select GitHub Actions as the Pages source in repository settings.
+The workflow in `.github/workflows/pages.yml` deploys each push to `main` with `BASE_PATH=/<repo>/`.
+For a custom domain, set `BASE_PATH=/`.
 
 ## Develop
 
 ```sh
-bun test         # feed builder and client tests
+bun test
 bun run build    # typecheck and build
 bun run lint
 ```
 
-The specification and planning notes are in `.scratch/gittok/`. The glossary is in `CONTEXT.md`.
+See [CONTEXT.md](CONTEXT.md) for the project glossary.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).
