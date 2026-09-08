@@ -57,7 +57,7 @@ export type Card = {
   url: string
   at: string
   title: string
-  body: string[]
+  body: string
   meta: string
   push?: { ref: string; before: string; head: string; count: number }
 }
@@ -91,8 +91,6 @@ const WINDOW_MS = 30 * 86_400_000
 const PUSH_WINDOW_MS = 6 * 3_600_000
 const REPO_WINDOW_MS = 24 * 3_600_000
 const SEEN_CAP = 1000
-// Lines a card shows before the reader taps "more".
-export const FOLD_LINES = 8
 
 export function releaseCardId(releaseId: number) {
   return `release-${releaseId}`
@@ -106,16 +104,6 @@ function shortRef(ref: string | null | undefined) {
   return (ref ?? '').replace(/^refs\/(heads|tags)\//, '')
 }
 
-// Turns Markdown text into plain lines.
-export function bodyLines(text: string | null | undefined, max?: number): string[] {
-  if (!text) return []
-  return text
-    .split(/\r?\n/)
-    .map((l) => l.replace(/<!--.*?-->/g, '').replace(/^[\s#>*-]+/, '').replace(/\*\*|`/g, '').trim())
-    .filter(Boolean)
-    .slice(0, max)
-}
-
 function actor(e: Event): Actor {
   return { login: e.actor.login, avatar: e.actor.avatar_url }
 }
@@ -127,7 +115,7 @@ function repoUrl(name: string) {
 // One event to one Card, or null when the type or action is dropped.
 function toCard(e: Event): Card | null {
   const p = e.payload
-  const base = { id: e.id, actors: [actor(e)], repo: e.repo.name, url: repoUrl(e.repo.name), at: e.created_at, body: [] as string[], meta: '' }
+  const base = { id: e.id, actors: [actor(e)], repo: e.repo.name, url: repoUrl(e.repo.name), at: e.created_at, body: '', meta: '' }
   switch (e.type) {
     case 'ReleaseEvent': {
       const r = p.release
@@ -160,7 +148,7 @@ function toCard(e: Event): Card | null {
         verb: merged ? 'merged' : 'opened',
         url: `${base.url}/pull/${pr.number}`,
         title: pr.title,
-        body: bodyLines(pr.body, 3),
+        body: pr.body ?? '',
         meta: `#${pr.number}`,
       }
     }
@@ -174,7 +162,7 @@ function toCard(e: Event): Card | null {
         verb: 'opened',
         url: issue.html_url,
         title: issue.title,
-        body: bodyLines(issue.body, 3),
+        body: issue.body ?? '',
         meta: `#${issue.number}`,
       }
     }
@@ -204,7 +192,7 @@ function releaseCard(base: Omit<Card, 'shape' | 'label' | 'verb' | 'title'>, r: 
     verb: 'released',
     url: r.url,
     title: r.name || r.tag,
-    body: bodyLines(r.notes),
+    body: r.notes ?? '',
     meta: r.prerelease ? `${r.tag} · pre-release` : r.tag,
   }
 }
@@ -213,7 +201,7 @@ function starredReleaseCard(r: StarredRepo): Card | null {
   const rel = r.latestRelease
   if (!rel) return null
   const owner = r.name.split('/')[0]!
-  const base = { id: '', actors: [{ login: owner, avatar: r.ownerAvatar }], repo: r.name, url: r.url, at: rel.publishedAt, body: [], meta: '' }
+  const base = { id: '', actors: [{ login: owner, avatar: r.ownerAvatar }], repo: r.name, url: r.url, at: rel.publishedAt, body: '', meta: '' }
   return releaseCard(base, { id: rel.id, tag: rel.tagName, name: rel.name, notes: rel.description, url: rel.url, prerelease: rel.isPrerelease })
 }
 

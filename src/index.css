@@ -83,8 +83,10 @@ a {
   scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: end;
   overflow-wrap: anywhere;
 }
 
@@ -103,10 +105,8 @@ a {
 
 /* Overlays are absolute, never fixed (WebKit bug 237961). */
 .card-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
+  grid-column: 1 / -1;
   padding: 16px 72px 16px 16px;
   padding-top: calc(var(--inset-top) + 40px);
 }
@@ -162,10 +162,19 @@ a {
 
 .card-body {
   position: relative;
-  flex: 1;
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  max-height: 100%;
   padding: 16px;
   padding-bottom: calc(var(--inset-bottom) + 32px);
+}
+
+.card-body > :not(.notes) {
+  flex-shrink: 0;
 }
 
 .actor {
@@ -193,19 +202,85 @@ a {
   margin: 6px 0;
 }
 
-.list {
-  max-height: 40dvh;
+.notes {
+  min-height: 0;
+  max-height: min(40dvh, 12em);
   overflow: hidden;
   margin: 8px 0;
+}
+
+.notes :is(p, ul, ol, pre, blockquote, table) {
+  margin: 0 0 0.65em;
+}
+
+.notes :is(h1, h2, h3, h4, h5, h6) {
+  font-size: 1em;
+  line-height: 1.25;
+  margin: 1em 0 0.5em;
+}
+
+.notes > div > :first-child {
+  margin-top: 0;
+}
+
+.notes :last-child {
+  margin-bottom: 0;
+}
+
+.notes :is(ul, ol) {
   padding-left: 20px;
 }
 
-.list li {
+.notes li {
   margin: 4px 0;
 }
 
-/* Open: the list scrolls inside the card. Contain keeps a scroll at its end from moving the feed. */
-.list.open {
+.notes a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes code {
+  font-size: 0.85em;
+  background: rgb(255 255 255 / 0.1);
+  border-radius: 3px;
+  padding: 0.1em 0.25em;
+}
+
+.notes pre {
+  overflow-x: auto;
+  padding: 8px;
+  background: rgb(0 0 0 / 0.2);
+  border-radius: 6px;
+}
+
+.notes pre code {
+  background: none;
+  padding: 0;
+}
+
+.notes blockquote {
+  border-left: 2px solid rgb(255 255 255 / 0.4);
+  padding-left: 12px;
+}
+
+.notes table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.notes :is(th, td) {
+  border: 1px solid rgb(255 255 255 / 0.25);
+  padding: 4px 8px;
+}
+
+.notes .task-list-item {
+  list-style: none;
+}
+
+/* Expanded notes scroll inside the card. A scroll at the end stays inside the notes. */
+.notes.open {
   max-height: 55dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -213,6 +288,7 @@ a {
 }
 
 .more {
+  align-self: flex-start;
   text-decoration: underline;
 }
 
@@ -222,6 +298,8 @@ a {
 
 .rail {
   position: relative;
+  grid-column: 2;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -251,6 +329,11 @@ a {
 }
 
 /* End, skeleton */
+.end {
+  display: flex;
+  align-items: flex-end;
+}
+
 .end,
 .skeleton {
   background: #111;

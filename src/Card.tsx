@@ -1,7 +1,9 @@
 import { ArrowTopRightOnSquareIcon, Cog6ToothIcon, StarIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid'
-import { useState } from 'react'
-import { actorLine, ago, FOLD_LINES, type Card, type RepoStats } from './feed.ts'
+import { useEffect, useId, useRef, useState } from 'react'
+import Markdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { actorLine, ago, type Card, type RepoStats } from './feed.ts'
 import type { EndState } from './Feed.tsx'
 
 export const Gear = () => (
@@ -11,6 +13,10 @@ export const Gear = () => (
 )
 
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
+const markdownComponents: Components = {
+  a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
+  img: ({ alt }) => alt,
+}
 
 function bigAvatar(url: string) {
   return url + (url.includes('?') ? '&' : '?') + 's=400'
@@ -29,8 +35,22 @@ export function CardView({ card, stats, commits, starred, onStar, now }: Props) 
   const [owner, name] = card.repo.split('/')
   const avatar = card.actors[0]!.avatar
   const title = card.title || (card.shape === 'repo' ? (stats?.description ?? '') : '')
-  const body = card.push ? (commits ?? []) : card.body
+  const body = card.push ? commits : card.body
   const [open, setOpen] = useState(false)
+  const [clipped, setClipped] = useState(false)
+  const notesRef = useRef<HTMLDivElement>(null)
+  const notesId = useId()
+  useEffect(() => {
+    const el = notesRef.current
+    if (!el || open) return
+    el.scrollTop = 0
+    const measure = () => setClipped(el.scrollHeight > el.clientHeight + 1)
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    observer.observe(el.firstElementChild!)
+    measure()
+    return () => observer.disconnect()
+  }, [body, open])
   const meta = card.push && commits ? `${commits.length} commit${commits.length === 1 ? '' : 's'}` : card.meta === title ? '' : card.meta
   return (
     <section className="card" data-id={card.id}>
@@ -72,15 +92,19 @@ export function CardView({ card, stats, commits, starred, onStar, now }: Props) 
           {name}
         </div>
         {title && <div className="title">{title}</div>}
-        {body.length > 0 && (
-          <ul className={open ? 'list open' : 'list'}>
-            {(open ? body : body.slice(0, FOLD_LINES)).map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ul>
+        {!!body?.length && (
+          <div id={notesId} ref={notesRef} className={open ? 'notes open' : 'notes'} tabIndex={open ? 0 : undefined}>
+            <div>
+              {Array.isArray(body) ? (
+                <ul>{body.map((line, i) => <li key={i}>{line}</li>)}</ul>
+              ) : (
+                <Markdown remarkPlugins={[remarkGfm]} skipHtml components={markdownComponents}>{body}</Markdown>
+              )}
+            </div>
+          </div>
         )}
-        {body.length > FOLD_LINES && (
-          <button className="more dim" onClick={() => setOpen(!open)}>
+        {!!body?.length && (clipped || open) && (
+          <button className="more dim" aria-expanded={open} aria-controls={notesId} onClick={() => setOpen(!open)}>
             {open ? 'less' : 'more'}
           </button>
         )}

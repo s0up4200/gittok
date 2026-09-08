@@ -175,11 +175,17 @@ describe('seen', () => {
   })
 })
 
-describe('release body', () => {
-  test('keeps every line so the card can unfold a long changelog', () => {
-    const notes = Array.from({ length: 30 }, (_, i) => `- change ${i}`).join('\n')
-    const [card] = buildFeed([release(1, 7, notes)], [], new Set(), NOW, new Set(KINDS.map((k) => k.kind)), new Set())
-    expect(card!.body).toHaveLength(30)
+describe('card body', () => {
+  test('keeps Markdown from releases, starred releases, issues, and pull requests', () => {
+    const notes = '## Notes\n\nA **paragraph** with `code`.\n\n' + Array.from({ length: 30 }, (_, i) => `- change ${i}`).join('\n')
+    const repo = starred(4, 8, 'other/repo')
+    repo.latestRelease!.description = notes
+    const cards = build([
+      release(1, 7, notes),
+      ev('IssuesEvent', 2, { action: 'opened', issue: { number: 1, title: 'Issue', body: notes, html_url: 'https://example.invalid/issue/1' } }),
+      ev('PullRequestEvent', 3, { action: 'opened', pull_request: { number: 2, title: 'PR', body: notes, merged: false } }),
+    ], [repo])
+    expect(cards.map((card) => card.body)).toEqual([notes, notes, notes, notes])
   })
 })
 
