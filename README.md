@@ -30,7 +30,7 @@ bun run build    # typecheck and build
 bun run lint
 ```
 
-See [CONTEXT.md](CONTEXT.md) for the project glossary.
+See [GLOSSARY.md](GLOSSARY.md) for the project glossary.
 
 ## License
 
